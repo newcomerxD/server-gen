@@ -2,14 +2,14 @@
 schedule: "@every 30m"
 
 smtp:
-  host: "smtp.example.com"
-  port: 587
-  username: "alert@example.com"
-  password: "supersecret"
-  from: "alert@example.com"
+  host: "${SMTP_HOST}"
+  port: ${SMTP_PORT}
+  username: "${SMTP_USER}"
+  password: "${SMTP_PASS}"
+  from: "${SMTP_FROM}"
   to:
-    - "admin1@example.com"
-    - "admin2@example.com"
+    - "${SMTP_TO1}"
+    - "${SMTP_TO2}"
 
 modules:
   - ip
@@ -17,3 +17,6 @@ modules:
   - cpu
   - mem
   - users
+
+http:
+  addr: ":8080"
