@@ -3,40 +3,48 @@ package mailer
 
 import (
     "bytes"
+    "crypto/tls"
     "fmt"
     "net/smtp"
     "text/template"
 
     "github.com/bocaletto-luca/server-gen/internal/config"
     "github.com/bocaletto-luca/server-gen/internal/sysinfo"
+    "gopkg.in/mail.v2"
 )
 
-const reportTemplate = `
-System Report:
+const tpl = `
+Time: {{.Timestamp}}
 IPs: {{.IPs}}
-Hostname: {{.Hostname}}
+Host: {{.Hostname}}
 OS: {{.OS}}
-CPU Usage: {{.CPUPercent}}
-Memory Used: {{.MemUsed}} / {{.MemTotal}}
+CPU: {{.CPUPercent}}
+Memory: {{.MemUsed}}/{{.MemTotal}}
 Users: {{.Users}}
 `
 
-// Send formats the system data and sends it via SMTP.
+// Send emails with TLS, retry on failure.
 func Send(smtpCfg config.SMTPConfig, data *sysinfo.Data) error {
-    auth := smtp.PlainAuth("", smtpCfg.Username, smtpCfg.Password, smtpCfg.Host)
-    var body bytes.Buffer
-    tpl := template.Must(template.New("report").Parse(reportTemplate))
-    if err := tpl.Execute(&body, data); err != nil {
-        return fmt.Errorf("execute template: %w", err)
+    m := mail.NewMessage()
+    m.SetHeader("From", smtpCfg.From)
+    m.SetHeader("To", smtpCfg.To...)
+    m.SetHeader("Subject", "[server-gen] System Report")
+    body := new(bytes.Buffer)
+    if err := template.Must(template.New("r").Parse(tpl)).Execute(body, data); err != nil {
+        return fmt.Errorf("template exec: %w", err)
     }
+    m.SetBody("text/plain", body.String())
 
-    addr := fmt.Sprintf("%s:%d", smtpCfg.Host, smtpCfg.Port)
-    msg := []byte(
-        fmt.Sprintf("From: %s\r\n", smtpCfg.From) +
-            fmt.Sprintf("To: %s\r\n", smtpCfg.To) +
-            "Subject: [server-gen] System Report\r\n\r\n" +
-            body.String(),
-    )
+    d := mail.NewDialer(smtpCfg.Host, smtpCfg.Port,
+        smtpCfg.Username, smtpCfg.Password)
+    d.TLSConfig = &tls.Config{InsecureSkipVerify: false}
+    d.StartTLSPolicy = mail.MandatoryStartTLS
 
-    return smtp.SendMail(addr, auth, smtpCfg.From, smtpCfg.To, msg)
+    // retry once
+    if err := d.DialAndSend(m); err != nil {
+        fmt.Println("first send failed, retrying:", err)
+        time.Sleep(time.Second * 5)
+        return d.DialAndSend(m)
+    }
+    return nil
 }
