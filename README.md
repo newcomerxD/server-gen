@@ -1,7 +1,4 @@
 # Server Generator
-
-[![CI](https://github.com/bocaletto-luca/server-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/bocaletto-luca/server-gen/actions/workflows/ci.yml)  
-
 #### Author: Bocaletto Luca
 
 **Server-Gen** is a multi-platform Go application that collects system metrics (IP, OS, CPU, memory, users) and emails a templated report on a configurable schedule. It also exposes a `/healthz` endpoint for basic health checks.
