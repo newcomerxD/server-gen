@@ -2,7 +2,7 @@
 # server-gen
 
 **Author:** Bocaletto Luca (@bocaletto-luca)  
-**Description:** Collects system information (IP, OS, CPU, memory, users) and sends templated email reports on a configurable schedule.
+**Description:** Server Generator is Collects system information (IP, OS, CPU, memory, users) and sends templated email reports on a configurable schedule.
 
 ## Installation
 
