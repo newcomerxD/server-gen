@@ -12,8 +12,9 @@ import (
     "github.com/shirou/gopsutil/v3/process"
 )
 
-// Data holds collected system metrics.
+// Data holds collected metrics.
 type Data struct {
+    Timestamp  string
     IPs        []string
     Hostname   string
     OS         string
@@ -23,10 +24,10 @@ type Data struct {
     Users      []string
 }
 
-// Collect gathers requested modules' data.
-func Collect(modules []string) *Data {
-    d := &Data{}
-    for _, m := range modules {
+// Collect gathers requested modules.
+func Collect(mods []string) *Data {
+    d := &Data{Timestamp: time.Now().Format(time.RFC3339)}
+    for _, m := range mods {
         switch strings.ToLower(m) {
         case "ip":
             ifs, _ := net.Interfaces()
@@ -47,13 +48,13 @@ func Collect(modules []string) *Data {
             d.MemTotal = mi.Total
             d.MemUsed = mi.Used
         case "users":
-            procs, _ := process.Processes()
             seen := map[string]struct{}{}
+            procs, _ := process.Processes()
             for _, p := range procs {
                 if u, err := p.Username(); err == nil {
                     if _, ok := seen[u]; !ok {
-                        d.Users = append(d.Users, u)
                         seen[u] = struct{}{}
+                        d.Users = append(d.Users, u)
                     }
                 }
             }
